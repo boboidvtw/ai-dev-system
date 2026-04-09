@@ -10,14 +10,17 @@ Usage:
 import argparse
 import logging
 import sys
+from pathlib import Path
 from rich.console import Console
 from rich.panel import Panel
 
 from agents.coordinator import TeamCoordinator
 from tools.rag_engine import RAGEngine
+from tools.file_manager import write_file, backup_file
 from config import cfg
 
 console = Console()
+logger = logging.getLogger(__name__)
 
 def main():
     parser = argparse.ArgumentParser(description="🤖 AI Multi-Agent Engineering Team")
@@ -51,10 +54,22 @@ def main():
 
     if result.success:
         console.print("[bold green]✅ Team collaboration complete![/bold green]")
-        console.print(f"Implementation: {len(result.implementation.files)} files")
-        console.print(f"Test Suite: {len(result.test_code.files)} files")
         
-        # Save report logic could go here
+        # --- Write files ---
+        for f in result.implementation.files:
+            # Handle default path
+            if f.path == "output.py":
+                f.path = args.file
+            
+            if Path(f.path).exists():
+                backup_file(f.path)
+            write_file(f.path, f.content)
+            console.print(f"  [green]✅ Written Implementation: {f.path}[/green]")
+
+        for f in result.test_code.files:
+            write_file(f.path, f.content)
+            console.print(f"  [green]✅ Written QA Tests: {f.path}[/green]")
+            
     else:
         console.print(f"[bold red]❌ Collaboration failed: {result.error}[/bold red]")
         sys.exit(1)

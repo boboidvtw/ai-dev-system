@@ -16,9 +16,11 @@
 
 1. 寫程式碼之前，**先理解問題**
 2. **設計解法**，包含架構和複雜度分析
-3. 用 production-quality 標準**實作**程式碼
-4. 自動產生**測試**，涵蓋所有邊界條件
-5. **自我審查**程式碼品質和優化空間
+3. **全域代碼理解 (RAG)**：索引整個 Repo，從全局視角理解 codebase
+4. 使用 production-quality 標準**實作**
+5. **多 Agent 協作**：PM、Dev、QA 專業代理人協同作業
+6. **自動化 GitHub 整合**：從讀取 Issue 到自動提交 PR 與 CI/CD
+7. **自我審查**程式碼品質與優化空間
 
 最終結果？程式碼是**乾淨的、可維護的、可測試的，而且真的能跑**。
 
@@ -266,12 +268,12 @@ python3 -m pytest tests/test_dev_agent.py::TestFullPipeline -v
 
 ## 🔮 發展藍圖
 
-- [ ] **RAG 整合** — 索引整個 repo 以提供完整 codebase context
-- [ ] **QA Agent** — 獨立的測試審查 Agent
-- [ ] **PM Agent** — 解析 GitHub Issue 為工程任務
-- [ ] **多 Agent 協作** — PM → Dev → QA 工作流程
-- [ ] **GitHub Actions 整合** — 從 PR 評論觸發 pipeline
-- [ ] **Web Dashboard** — 視覺化 pipeline 監控
+- [x] **5 步驟 Pipeline** — 結構化工程流程
+- [ ] **RAG 整合 (v1.1)** — 索引整個 repo 以提供完整 codebase context
+- [ ] **GitHub Issue 整合 (v1.2)** — 自動讀取並嘗試修復 Open Issues
+- [ ] **多 Agent 協作 (v2.0)** — PM → Dev → QA 工作流程
+- [ ] **獨立 QA Agent** — 專責找 Bug 的驗證代理人
+- [ ] **GitHub Actions 整合** — 從 PR 評論或 Issue 觸發 pipeline
 
 ---
 

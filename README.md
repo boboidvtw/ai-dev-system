@@ -16,9 +16,11 @@ Most AI code generators just dump code. This system is different — it implemen
 
 1. **Understand the problem** before writing a single line
 2. **Design the solution** with architecture and complexity analysis
-3. **Implement** with production-quality standards
-4. **Test** with comprehensive edge-case coverage
-5. **Review** its own code for quality and optimization
+3. **Deep Repo Knowledge (RAG)**: Indexing entire codebases for holistic understanding
+4. **Implement** with production-quality standards
+5. **Multi-Agent Collaboration**: Specialized PM, Dev, and QA agents working together
+6. **Automated GitHub Ops**: From reading Issues to creating PRs and running CI/CD
+7. **Review** its own code for quality and optimization
 
 The result? Code that's **clean, maintainable, testable, and actually works**.
 
@@ -266,12 +268,12 @@ When you run the system, you'll see structured output for each step:
 
 ## 🔮 Roadmap
 
-- [ ] **RAG Integration** — Index entire repo for full codebase context
-- [ ] **QA Agent** — Independent test review agent
-- [ ] **PM Agent** — Parse GitHub Issues into engineering tasks
-- [ ] **Multi-Agent Orchestration** — PM → Dev → QA collaboration
-- [ ] **GitHub Actions** — Trigger pipeline from PR comments
-- [ ] **Web Dashboard** — Visual pipeline monitoring
+- [x] **5-Step Pipeline** — Structured engineering process
+- [ ] **RAG Integration** (v1.1) — Index entire repo for full codebase context
+- [ ] **GitHub Issue Integration** (v1.2) — Automatically read and resolve open issues
+- [ ] **Multi-Agent Orchestration** (v2.0) — PM → Dev → QA collaboration
+- [ ] **Independent QA Agent** — AI-driven verification that tries to "break" the code
+- [ ] **GitHub Actions** — Trigger pipeline from PR comments or issues
 
 ---
 

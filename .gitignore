@@ -1,0 +1,24 @@
+# AI Dev System
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+
+# Backups
+*.bak
+
+# Workspace (runtime generated)
+workspace/

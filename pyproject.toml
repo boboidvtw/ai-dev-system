@@ -1,0 +1,20 @@
+[project]
+name = "ai-dev-system"
+version = "0.1.0"
+description = "AI-driven Software Engineering System — auto code, test, and PR"
+requires-python = ">=3.10"
+dependencies = [
+    "litellm>=1.30.0",
+    "python-dotenv>=1.0.0",
+    "PyGithub>=2.1.0",
+    "rich>=13.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
+]
+
+[project.scripts]
+ai-dev = "main:cli"

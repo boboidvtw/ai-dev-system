@@ -37,6 +37,7 @@ from config import cfg
 from tools.file_manager import backup_file, read_file, write_file
 from tools.github_tool import GitHubTool
 from tools.test_runner import run_tests
+from tools.rag_engine import RAGEngine
 
 console = Console()
 
@@ -157,6 +158,7 @@ def run_pipeline(
     dry_run: bool = False,
     report_path: str | None = None,
     interactive: bool = False,
+    rag_context: str = "",
 ) -> bool:
     """
     Execute the full AI engineering pipeline.
@@ -170,6 +172,7 @@ def run_pipeline(
         dry_run: If True, don't write files or push.
         report_path: If set, save engineering report to this path.
         interactive: If True, pause on low-confidence for user input.
+        rag_context: Context retrieved from RAG.
 
     Returns:
         True if pipeline completed successfully.
@@ -186,10 +189,11 @@ def run_pipeline(
     ))
 
     # --- Read existing code (context) ---
-    context = ""
+    context = rag_context
     try:
-        context = read_file(target_file)
-        logger.info(f"Read existing file: {target_file} ({len(context)} chars)")
+        existing_code = read_file(target_file)
+        context += f"\n\n--- Existing File Content ({target_file}) ---\n{existing_code}"
+        logger.info(f"Read existing file: {target_file} ({len(existing_code)} chars)")
     except FileNotFoundError:
         logger.info(f"Target file not found — will create new: {target_file}")
 
@@ -242,7 +246,7 @@ def run_pipeline(
 
     if not dry_run:
         for f in impl.files:
-            if context and f.path == target_file:
+            if Path(f.path).exists() and f.path == target_file:
                 backup_file(f.path)
             write_file(f.path, f.content)
             console.print(f"  [green]✅ Written: {f.path}[/green]")
@@ -379,6 +383,18 @@ def cli():
 
     args = parser.parse_args()
     setup_logging(args.log_level or cfg.log_level)
+    logger = logging.getLogger("pipeline")
+
+    # --- Step 0: RAG Context ---
+    rag_context = ""
+    try:
+        with console.status("[bold magenta]🧠 Indexing repository (RAG)..."):
+            rag = RAGEngine()
+            rag.index_repo(".")
+            rag_context = rag.query(args.task)
+            logger.info("RAG context retrieved successfully")
+    except Exception as e:
+        logger.warning(f"RAG failed (falling back to no-context): {e}")
 
     success = run_pipeline(
         task=args.task,
@@ -389,6 +405,7 @@ def cli():
         dry_run=args.dry_run,
         report_path=args.report,
         interactive=args.interactive,
+        rag_context=rag_context,
     )
 
     sys.exit(0 if success else 1)

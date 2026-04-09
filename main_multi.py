@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from agents.coordinator import TeamCoordinator
+from tools.rag_engine import RAGEngine
 from config import cfg
 
 console = Console()
@@ -35,8 +36,18 @@ def main():
         title="Session Start"
     ))
 
+    # --- Step 0: RAG Context ---
+    rag_context = ""
+    try:
+        with console.status("[bold magenta]🧠 Team indexing repository (RAG)..."):
+            rag = RAGEngine()
+            rag.index_repo(".")
+            rag_context = rag.query(args.task)
+    except Exception as e:
+        logger.warning(f"RAG failed: {e}")
+
     coordinator = TeamCoordinator()
-    result = coordinator.run_collaborative_workflow(args.task)
+    result = coordinator.run_collaborative_workflow(args.task, context=rag_context)
 
     if result.success:
         console.print("[bold green]✅ Team collaboration complete![/bold green]")

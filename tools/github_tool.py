@@ -78,12 +78,40 @@ class GitHubTool:
         result = self._run_git("push", "-u", "origin", branch_name)
         return result.returncode == 0
 
+    def get_issue(self, issue_number: int) -> tuple[str, str, list[str]]:
+        """
+        Fetch issue details.
+        
+        Returns:
+            Tuple of (title, body, labels)
+        """
+        try:
+            repo = self.github.get_repo(cfg.github_repo)
+            issue = repo.get_issue(number=issue_number)
+            labels = [l.name for l in issue.labels]
+            logger.info(f"Fetched Issue #{issue_number}: {issue.title}")
+            return issue.title, issue.body, labels
+        except GithubException as e:
+            logger.error(f"Failed to fetch issue #{issue_number}: {e}")
+            raise
+
+    def list_open_issues(self) -> list[tuple[int, str]]:
+        """List open issues in the repository."""
+        try:
+            repo = self.github.get_repo(cfg.github_repo)
+            issues = repo.get_issues(state="open")
+            return [(i.number, i.title) for i in issues if not i.pull_request]
+        except GithubException as e:
+            logger.error(f"Failed to list issues: {e}")
+            return []
+
     def create_pr(
         self,
         title: str,
         body: str,
         branch_name: str,
         base: str = "main",
+        linked_issue: int | None = None,
     ) -> str | None:
         """
         Create a Pull Request via GitHub API.
@@ -91,6 +119,9 @@ class GitHubTool:
         Returns:
             PR URL if successful, None otherwise.
         """
+        if linked_issue:
+            body += f"\n\nCloses #{linked_issue}"
+            
         logger.info(f"Creating PR: {title}")
 
         try:
@@ -115,6 +146,7 @@ class GitHubTool:
         pr_title: str,
         pr_body: str,
         files: list[str] | None = None,
+        linked_issue: int | None = None,
     ) -> str | None:
         """
         Complete workflow: branch → commit → push → PR.
@@ -128,4 +160,4 @@ class GitHubTool:
             return None
         if not self.push_branch(branch_name):
             return None
-        return self.create_pr(pr_title, pr_body, branch_name)
+        return self.create_pr(pr_title, pr_body, branch_name, linked_issue=linked_issue)

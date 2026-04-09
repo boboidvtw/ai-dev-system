@@ -159,6 +159,7 @@ def run_pipeline(
     report_path: str | None = None,
     interactive: bool = False,
     rag_context: str = "",
+    linked_issue: int | None = None,
 ) -> bool:
     """
     Execute the full AI engineering pipeline.
@@ -350,6 +351,7 @@ def run_pipeline(
         pr_title=f"🤖 AI Engineer: {task}",
         pr_body="\n".join(pr_body_parts),
         files=all_files,
+        linked_issue=linked_issue,
     )
 
     if pr_url:
@@ -379,26 +381,51 @@ def cli():
     parser.add_argument("--dry-run", action="store_true", help="Preview without writing")
     parser.add_argument("--report", default=None, help="Save engineering report to file")
     parser.add_argument("--interactive", action="store_true", help="Pause on low confidence")
+    parser.add_argument("--issue", type=int, help="Fetch task from GitHub Issue ID")
     parser.add_argument("--log-level", default=None, help="DEBUG/INFO/WARNING")
 
     args = parser.parse_args()
     setup_logging(args.log_level or cfg.log_level)
     logger = logging.getLogger("pipeline")
 
-    # --- Step 0: RAG Context ---
+    # --- Step 0: GitHub Issue Integration ---
+    task = args.task
+    target_file = args.file
+    linked_issue = args.issue
+
+    if linked_issue:
+        try:
+            with console.status(f"[bold blue]📥 Fetching Issue #{linked_issue}..."):
+                gh = GitHubTool()
+                title, body, labels = gh.get_issue(linked_issue)
+                # Combine title and body into task if task is empty
+                if not task or task == ".":
+                    task = f"{title}\n\nDescription:\n{body}"
+                
+                # Heuristic: if issue has labels like "fix: file.py", use it as target_file
+                # For now, we rely on user providing the file or using a default
+                logger.info(f"Task populated from Issue #{linked_issue}")
+        except Exception as e:
+            logger.error(f"Failed to fetch issue: {e}")
+            sys.exit(1)
+
+    if not task:
+        parser.error("A task description (or --issue) is required.")
+
+    # --- Step 1: RAG Context ---
     rag_context = ""
     try:
         with console.status("[bold magenta]🧠 Indexing repository (RAG)..."):
             rag = RAGEngine()
             rag.index_repo(".")
-            rag_context = rag.query(args.task)
+            rag_context = rag.query(task)
             logger.info("RAG context retrieved successfully")
     except Exception as e:
         logger.warning(f"RAG failed (falling back to no-context): {e}")
 
     success = run_pipeline(
-        task=args.task,
-        target_file=args.file,
+        task=task,
+        target_file=target_file,
         test_path=args.test_path,
         skip_pr=args.skip_pr,
         skip_review=args.skip_review,
@@ -406,6 +433,7 @@ def cli():
         report_path=args.report,
         interactive=args.interactive,
         rag_context=rag_context,
+        linked_issue=linked_issue,
     )
 
     sys.exit(0 if success else 1)

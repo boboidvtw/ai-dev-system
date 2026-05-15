@@ -1,0 +1,12 @@
+INFO:     Started server process [21400]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8001 (Press CTRL+C to quit)
+INFO:     127.0.0.1:61746 - "POST /api/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:61747 - "GET /api/status HTTP/1.1" 200 OK
+INFO:     Shutting down
+INFO:tools.rag_engine:RAG Engine initialized. Storage: .rag_cache
+INFO:tools.rag_engine:Indexing repository at ....
+INFO:     Waiting for application shutdown.
+INFO:     Application shutdown complete.
+INFO:     Finished server process [21400]

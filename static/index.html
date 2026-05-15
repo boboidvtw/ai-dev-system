@@ -205,12 +205,15 @@
     <div class="main-content">
         <div class="header">
             <h1>Engineering Dashboard</h1>
-            <div id="statusBadge" style="font-size: 0.8rem; color: var(--text-dim);">Ready</div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <button id="langToggle" class="btn-run" style="padding: 0.4rem 1rem; font-size: 0.75rem; background: var(--card-bg); border: 1px solid var(--border);" onclick="toggleLang()">English</button>
+                <div id="statusBadge" style="font-size: 0.8rem; color: var(--text-dim);">READY</div>
+            </div>
         </div>
 
         <div class="dashboard-grid">
             <div class="panel">
-                <h2><span>📡</span> Live Pipeline</h2>
+                <h2 id="pipelineTitle"><span>📡</span> Live Pipeline</h2>
                 <input type="text" id="taskInput" class="glass-input" placeholder="What should I build today?">
                 <input type="text" id="fileInput" class="glass-input" placeholder="Target file (e.g. app.py)">
                 <button class="btn-run" onclick="startTask()">Launch AI Engineer</button>
@@ -220,7 +223,7 @@
             </div>
 
             <div class="panel">
-                <h2><span>🏗️</span> Progress</h2>
+                <h2 id="progressTitle"><span>🏗️</span> Progress</h2>
                 <div class="steps">
                     <div class="step" id="step1"><div class="step-num">1</div> Problem Understanding</div>
                     <div class="step" id="step2"><div class="step-num">2</div> Solution Design</div>
@@ -233,11 +236,91 @@
     </div>
 
     <script>
+        const i18n = {
+            en: {
+                title: "Engineering Dashboard",
+                status_ready: "READY",
+                status_running: "RUNNING",
+                status_success: "SUCCESS",
+                status_failed: "FAILED",
+                issues: "Open Issues",
+                loading_issues: "Loading issues...",
+                pipeline: "Live Pipeline",
+                task_placeholder: "What should I build today?",
+                file_placeholder: "Target file (e.g. app.py)",
+                btn_launch: "Launch AI Engineer",
+                progress: "Progress",
+                step1: "Problem Understanding",
+                step2: "Solution Design",
+                step3: "Implementation",
+                step4: "Automated Testing",
+                step5: "Optimization Review",
+                awaiting: "Awaiting deployment instructions..."
+            },
+            zh: {
+                title: "工程開發儀表板",
+                status_ready: "就緒",
+                status_running: "執行中",
+                status_success: "完成",
+                status_failed: "失敗",
+                issues: "待處理問題 (Issues)",
+                loading_issues: "讀取中...",
+                pipeline: "即時流水線 (Live Pipeline)",
+                task_placeholder: "今天要開發什麼功能？",
+                file_placeholder: "目標檔案 (例如 app.py)",
+                btn_launch: "啟動 AI 工程師",
+                progress: "開發進度",
+                step1: "問題理解與分析",
+                step2: "架構設計與規劃",
+                step3: "程式碼開發實作",
+                step4: "自動化測試驗證",
+                step5: "程式碼優化與審查",
+                awaiting: "等待開發指令下達..."
+            }
+        };
+
+        let currentLang = localStorage.getItem('lang') || 'zh';
+
+        function updateUI() {
+            const t = i18n[currentLang];
+            document.querySelector('.header h1').innerText = t.title;
+            document.querySelector('.nav-section h3').innerText = t.issues;
+            document.querySelector('#taskInput').placeholder = t.task_placeholder;
+            document.querySelector('#fileInput').placeholder = t.file_placeholder;
+            document.querySelector('.btn-run').innerText = t.btn_launch;
+            document.querySelector('#progressTitle').innerText = t.progress;
+            document.querySelector('#pipelineTitle').innerText = t.pipeline;
+            
+            document.getElementById('step1').childNodes[1].nodeValue = " " + t.step1;
+            document.getElementById('step2').childNodes[1].nodeValue = " " + t.step2;
+            document.getElementById('step3').childNodes[1].nodeValue = " " + t.step3;
+            document.getElementById('step4').childNodes[1].nodeValue = " " + t.step4;
+            document.getElementById('step5').childNodes[1].nodeValue = " " + t.step5;
+
+            document.getElementById('langToggle').innerText = currentLang === 'zh' ? 'English' : '繁體中文';
+            
+            if (activeState === 'idle') {
+                document.getElementById('logViewer').innerText = "> " + t.awaiting;
+            }
+        }
+
+        function toggleLang() {
+            currentLang = currentLang === 'zh' ? 'en' : 'zh';
+            localStorage.setItem('lang', currentLang);
+            updateUI();
+        }
+
+        let activeState = 'idle';
+
         async function fetchIssues() {
             try {
                 const res = await fetch('/api/issues');
                 const issues = await res.json();
                 const list = document.getElementById('issueList');
+                if (issues.length === 0) {
+                    list.innerHTML = `<li class="issue-item">No issues found.</li>`;
+                    return;
+                }
                 list.innerHTML = issues.map(i => `
                     <li class="issue-item" onclick="selectIssue(${i[0]}, '${i[1].replace(/'/g, "\\'")}')">
                         #${i[0]} ${i[1]}
@@ -254,17 +337,44 @@
         }
 
         async function startTask() {
-            const task = document.getElementById('taskInput').value;
-            const file = document.getElementById('fileInput').value;
-            if (!task || !file) return alert('Please provide task and file!');
-
-            const res = await fetch('/api/run', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ task, target_file: file })
-            });
+            let task = document.getElementById('taskInput').value;
+            let file = document.getElementById('fileInput').value;
             
-            pollStatus();
+            // Smart Default: If file is empty, use a default path
+            if (!file && task) {
+                file = 'workspace/artifact.py';
+                document.getElementById('fileInput').value = file;
+            }
+
+            if (!task) return alert(currentLang === 'zh' ? '請提供任務說明！' : 'Please provide task description!');
+            if (!file) return alert(currentLang === 'zh' ? '請提供目標檔案名稱！' : 'Please provide target file!');
+
+            console.log("Starting task:", { task, file });
+            const btn = document.querySelector('.btn-run');
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+
+            try {
+                const res = await fetch('/api/run', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ task, target_file: file })
+                });
+                
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || 'Server side error');
+                }
+
+                console.log("Task started successfully");
+                activeState = 'running';
+                pollStatus();
+            } catch (err) {
+                console.error("Fetch error:", err);
+                alert("Launch Error: " + err.message);
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }
         }
 
         let pollInterval;
@@ -273,14 +383,56 @@
             pollInterval = setInterval(async () => {
                 const res = await fetch('/api/status');
                 const state = await res.json();
+                activeState = state.status;
                 
                 // Update logs
                 const logViewer = document.getElementById('logViewer');
                 logViewer.innerHTML = state.logs.map(l => `<div class="log-entry info">> ${l}</div>`).join('');
                 logViewer.scrollTop = logViewer.scrollHeight;
 
-                // Update status
-                document.getElementById('statusBadge').innerText = state.status.toUpperCase();
+                // Update status badge
+                const t = i18n[currentLang];
+                const statusText = t[`status_${state.status}`] || state.status.toUpperCase();
+                document.getElementById('statusBadge').innerText = statusText;
+
+                // --- Sync Visual Steps ---
+                const logsStr = state.logs.join('\n');
+                const steps = [
+                    { id: 'step1', keywords: ['Step 1', 'PM Agent', 'Problem Understanding'] },
+                    { id: 'step2', keywords: ['Step 2', 'Solution Design'] },
+                    { id: 'step3', keywords: ['Step 3', 'Implementation'] },
+                    { id: 'step4', keywords: ['Step 4', 'QA Agent', 'Automated Testing'] },
+                    { id: 'step5', keywords: ['Step 5', 'Optimization Review'] }
+                ];
+
+                let currentStepIndex = -1;
+                steps.forEach((s, index) => {
+                    const el = document.getElementById(s.id);
+                    const matched = s.keywords.some(k => logsStr.includes(k));
+                    
+                    if (matched) {
+                        currentStepIndex = index;
+                    }
+                });
+
+                steps.forEach((s, index) => {
+                    const el = document.getElementById(s.id);
+                    el.classList.remove('active', 'done');
+                    if (index < currentStepIndex) {
+                        el.classList.add('done');
+                    } else if (index === currentStepIndex) {
+                        el.classList.add('active');
+                    }
+                });
+
+                // Final state
+                if (state.status === 'success') {
+                    steps.forEach(s => {
+                        const el = document.getElementById(s.id);
+                        el.classList.remove('active');
+                        el.classList.add('done');
+                    });
+                }
                 
                 if (state.status === 'success' || state.status === 'error') {
                     clearInterval(pollInterval);
@@ -288,7 +440,9 @@
             }, 1000);
         }
 
+        // Initialize UI
         fetchIssues();
+        updateUI();
     </script>
 </body>
 </html>

@@ -22,3 +22,6 @@ venv/
 
 # Workspace (runtime generated)
 workspace/
+
+# RAG 索引快取，執行時自動重建（2026-11-11 移出版控）
+.rag_cache/
